@@ -3,6 +3,7 @@ import secrets
 import json
 from json import JSONDecodeError
 import sys
+import PySimpleGUI as sg
 
 UNUSED_VOWEL = 5
 UNUSED_CONSONANT = 6
@@ -207,47 +208,76 @@ def check_winner(turn_counter: int, status=None):
 
             check_winner(turn_counter, status=status)
 
-
-def main():
-
-    # TODO implement checksum
-    WEIGHTS_MD5_CHECKSUM = ''
-    SIMULATION = True
-
     wordle = GuessStatus()
 
     wordle.valid_words = read_file('/home/eden/workspace/accepted_wordle_words.txt')
     wordle.weights = get_weights()
 
-    if SIMULATION:
-        #random_int_guess = secrets.randbelow(len(wordle.valid_words))
-        random_int_answer = secrets.randbelow(len(wordle.valid_words))
-        #sim_guess = wordle.valid_words[random_int_guess]
-        sim_answer = wordle.valid_words[random_int_answer]
-        while True:
+
+def main():
+
+    layout = [  [sg.Text('Wordle Simulation')],
+                [sg.Text("", size=(2, 1), font=("Arial",52),text_color='Black',background_color='Grey', justification='center', key=f'OUTPUT0{num}') for num in range(0, 5)],
+                [sg.Text("", size=(2, 1), font=("Arial",52),text_color='Black',background_color='Grey', justification='center', key=f'OUTPUT1{num}') for num in range(0, 5)],
+                [sg.Text("", size=(2, 1), font=("Arial",52),text_color='Black',background_color='Grey', justification='center', key=f'OUTPUT2{num}') for num in range(0, 5)],
+                [sg.Text("", size=(2, 1), font=("Arial",52),text_color='Black',background_color='Grey', justification='center', key=f'OUTPUT3{num}') for num in range(0, 5)],
+                [sg.Text("", size=(2, 1), font=("Arial",52),text_color='Black',background_color='Grey', justification='center', key=f'OUTPUT4{num}') for num in range(0, 5)],
+                [sg.Button('Running'), sg.Exit(),sg.Button("Enable"), sg.Button("Disable")]]
+
+    window = sg.Window('Wordle Simulation', layout, no_titlebar=True, resizable=False, size=(480, 800)).Finalize()
+
+    # TODO implement checksum
+    WEIGHTS_MD5_CHECKSUM = ''
+    #window['Simulation'].update(False)
+    sim_run_once = True
+
+    window['Running'].update(disabled=True)
+    send = window['Running']
+
+    wordle = GuessStatus()
+    wordle.valid_words = read_file('/home/eden/workspace/accepted_wordle_words.txt')
+    wordle.weights = get_weights()
+    while True:
+        event, values = window.Read()
+        print(event, values)
+        if event in ('Exit'):
+            break
+        elif event in ('Enable', 'Disable'):
+            send.update(disabled=event=='Disable')
+            state = 'enabled' if send.Widget['state'] == 'normal' else 'disabled'
+            #status.update(f"Button 'SEND' is {state} now.")
+
+        if state == 'enabled':
+            if sim_run_once:
+                random_int_answer = secrets.randbelow(len(wordle.valid_words))
+                sim_answer = wordle.valid_words[random_int_answer]
+                sim_run_once = False
             wordle.recommended_answer()
             sim_guess = wordle.best_guess
             sim_status = wordle.check_guess(sim_guess, sim_answer)
             check_winner(wordle.turn_counter, status=sim_status)
             wordle.fill_info(guess=sim_guess, status=sim_status)
+            front_end_display(wordle.turn_counter, sim_guess, sim_status)
             wordle.filter_functions()
-            
-            wordle.turn_counter += 1
-
-
-    else:
-        while True:
+        else:
+            # check if provide answer or simulate game
+            # restart all counter and status
             wordle.recommended_answer()
             guess = wordle.best_guess
             print(f'Try {guess}')
+            #print guess to try
             print("what was the response")
+            #accept input from text box
             status = input()
             check_winner(wordle.turn_counter, status=status)
             wordle.fill_info(guess=guess, status=status)
             wordle.filter_functions()
             guess = wordle.best_guess
 
-            wordle.turn_counter += 1
+        window['OUTPUT00'].update('a', background_color='Green')
+        window['OUTPUT33'].update('d', background_color='Red')
+
+        wordle.turn_counter += 1
 
 
 if __name__ == "__main__":
